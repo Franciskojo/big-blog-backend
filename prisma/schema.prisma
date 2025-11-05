@@ -1,0 +1,80 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(READER)
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts     Post[]
+  comments  Comment[]
+
+  @@map("users")
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  title       String
+  content     String
+  excerpt     String?
+  image       String?
+  tags        String[]
+  published   Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  author      User       @relation(fields: [authorId], references: [id])
+  authorId    String
+
+  // ✅ Each post belongs to ONE category
+  category    Category?  @relation(fields: [categoryId], references: [id])
+  categoryId  String?
+
+  comments    Comment[]
+
+  @@map("posts")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  // ✅ Each category has MANY posts
+  posts     Post[]
+
+  @@map("categories")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  author    User   @relation(fields: [authorId], references: [id])
+  authorId  String
+
+  post      Post   @relation(fields: [postId], references: [id])
+  postId    String
+
+  @@map("comments")
+}
+
+enum Role {
+  READER
+  AUTHOR
+  ADMIN
+}
