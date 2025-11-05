@@ -12,6 +12,9 @@ import categoryRouter from './routes/categoryRoutes.js';
 
 const app = express();
 
+// Tell Express to trust proxy headers (for rate limiting, HTTPS redirects, etc.)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 app.use(
