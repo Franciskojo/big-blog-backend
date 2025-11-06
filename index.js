@@ -11,33 +11,57 @@ import userRouter from './routes/users.js';
 import categoryRouter from './routes/categoryRoutes.js';
 
 const app = express();
-
-// Tell Express to trust proxy headers (for rate limiting, HTTPS redirects, etc.)
 app.set('trust proxy', 1);
 
-// Security middleware
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+// ========================
+// 🔒 Security Middleware
+// ========================
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 
+// ✅ Handle CORS globally (no need for app.options)
+app.use(
+  cors({
+    origin: [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'https://big-blog-frontend.vercel.app',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  })
+);
 
-// Rate limiting
+// ========================
+// 🧱 Rate Limiting
+// ========================
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 100,
 });
 app.use(limiter);
 
-// Body parsers
+// ========================
+// 🧩 Body Parsers
+// ========================
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: '10mb' }));
 
-// Routes
+// ========================
+// 🧭 API Routes
+// ========================
 app.use('/api/auth', authRouter);
 app.use('/api/posts', postsRouter);
 app.use('/api/comments', commentsRouter);
 app.use('/api/users', userRouter);
 app.use('/api/categories', categoryRouter);
 
-// Health check
+// ========================
+// 🩺 Health Check
+// ========================
 app.get('/api/health', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
@@ -47,21 +71,22 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
-});
+// ========================
+// ❌ 404 Handler
+// ========================
+app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 
-// Error handler
+// ========================
+// 🚨 Error Handler
+// ========================
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: 'Something went wrong!',
-    ...(process.env.NODE_ENV === 'production' && { stack: err.stack }),
-  });
+  console.error(err);
+  res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// Start server (pool auto-connects)
+// ========================
+// 🚀 Start Server
+// ========================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
 
